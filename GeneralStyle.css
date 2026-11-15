@@ -1,0 +1,56 @@
+/*Základ a měnitelné hodnoty*/
+:root {
+  --Highlight: rgb(108, 45, 255);
+  --Text: rgb(33, 12, 82);
+  --BackGround: rgb(248, 247, 252);
+}
+
+html{
+    scroll-behavior: smooth;
+}
+
+body{
+    background-color: var(--BackGround);
+    color: var(--Text);
+}
+
+h1,h2,h3,h4,a,button,th{
+    color: var(--Highlight);
+    font-family:  'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+p,h5,h6,body{
+    color: var(--Text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+main{
+    display: flex;
+}
+
+
+/*Sidebar*/
+
+#Sidebar{
+    display: flex;
+    width: min-content;
+    height: 95dvh;
+    border-radius: 22px;
+    padding: 11px;
+    background-color: rgb(from var(--Text) r g b / 0.15);
+    backdrop-filter: blur(12px);
+}
+
+#HeadlineMaker{
+    display: flex;
+
+}
+
+#Logo{
+    width: 55px;
+    height: auto;
+}
+
+#Headline{
+    margin-top: 50px;
+}
