@@ -1,8 +1,8 @@
 /*Základ a měnitelné hodnoty*/
 :root {
   --Highlight: rgb(108, 45, 255);
-  --Text: rgb(33, 12, 82);
-  --BackGround: rgb(248, 247, 252);
+  --Text: rgb(248, 247, 252);
+  --BackGround: rgb(9, 3, 20);
 }
 
 html{
@@ -19,13 +19,27 @@ h1,h2,h3,h4,a,button,th{
     font-family:  'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-p,h5,h6,body{
+p,h5,h6,body,input{
     color: var(--Text);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 main{
     display: flex;
+}
+
+button{
+    padding: 9px 16px;
+    border: 1px solid var(--Highlight);
+    border-radius: 8px;
+    background-color: var(--Highlight);
+    color: var(--Text);
+    font: inherit;
+    cursor: pointer;
+}
+
+button:hover{
+    filter: brightness(1.15);
 }
 
 
@@ -37,8 +51,7 @@ main{
     height: 95dvh;
     border-radius: 22px;
     padding: 11px;
-    background-color: rgb(from var(--Text) r g b / 0.15);
-    backdrop-filter: blur(12px);
+    background-color: rgb(from var(--Text) r g b / 0.05);
 }
 
 #HeadlineMaker{

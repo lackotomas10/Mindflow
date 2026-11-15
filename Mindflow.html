@@ -3,34 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Mindflow</title>
     <link rel="shortcut icon" href="img/Mindflow.svg" type="image/x-icon">
     <link rel="stylesheet" href="GeneralStyle.css">
+    <link rel="stylesheet" href="Mindflow.css">
 </head>
 <body>
     <main>
-        <div id="Sidebar">
+        <div id="Sidebar"> <!-- Vyjíždění a zajíždění  -->
             <nav>
                 <span id="HeadlineMaker">
                     <img src="img/Mindflow.svg" id="Logo">
                     <h1 id="Headline">Mindflow</h1>
                 </span>
                 
-                <a href=""><h3>Storage</h3></a>
-                <a href=""><h3>Charts</h3></a>
-                <a href=""><h3>Settings</h3></a>
+                <a class="Links" href=""><h3>Storage</h3></a>
+                <a class="Links" href=""><h3>Charts</h3></a>
+                <a class="Links" href=""><h3>Settings</h3></a>
             </nav>
         </div>
         <div id="MainWindow">
+            <div class="WindowHeader">
+                <label for="BoxName">Box:</label>
+                <input id="BoxName" type="text" value="My Box">
+                <label for="DocumentName">Document:</label>
+                <input id="DocumentName" type="text" value="New document">
+            </div>
 
             <div class="NotesWindow">
-                <button>Save</button>
-                <button>Delete</button>
-                <button></button>
-
-                <!-- Vložení md/txt souboru do divu-->
-                 <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Consequatur enim odit non eius optio quia saepe dolores, veritatis molestiae voluptatibus quisquam incidunt officiis! Veniam voluptates aut perspiciatis veritatis cumque quisquam!</p>
-
+                <div class="NoteButtons">
+                    <button type="button">Save</button>
+                    <button type="button">Delete</button>
+                </div>
+                <textarea class="NoteText" aria-label="Document text" placeholder="Start writing..."></textarea>
             </div>
 
         </div>
