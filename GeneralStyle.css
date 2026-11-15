@@ -1,69 +1,256 @@
-/*Základ a měnitelné hodnoty*/
 :root {
-  --Highlight: rgb(108, 45, 255);
-  --Text: rgb(248, 247, 252);
-  --BackGround: rgb(9, 3, 20);
+    --Highlight: rgb(108, 45, 255);
+    --Text: rgb(248, 247, 252);
+    --BackGround: rgb(9, 3, 20);
+    --Panel: rgb(18, 12, 31);
+    --font-scale: 1;
 }
 
-html{
-    scroll-behavior: smooth;
+:root[data-theme="light"] {
+    --Text: rgb(35, 29, 46);
+    --BackGround: rgb(245, 242, 250);
+    --Panel: rgb(255, 255, 255);
 }
 
-body{
-    background-color: var(--BackGround);
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-width: 320px;
+    background: var(--BackGround);
+}
+
+body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--BackGround);
     color: var(--Text);
+    font: calc(15px * var(--font-scale)) / 1.5 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-h1,h2,h3,h4,a,button,th{
-    color: var(--Highlight);
-    font-family:  'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+button,
+input,
+select,
+textarea {
+    font: inherit;
 }
 
-p,h5,h6,body,input{
-    color: var(--Text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-main{
-    display: flex;
-}
-
-button{
+button {
     padding: 9px 16px;
     border: 1px solid var(--Highlight);
     border-radius: 8px;
-    background-color: var(--Highlight);
+    background: var(--Highlight);
     color: var(--Text);
-    font: inherit;
     cursor: pointer;
 }
 
-button:hover{
-    filter: brightness(1.15);
+button:hover:not(:disabled) {
+    filter: brightness(1.12);
 }
 
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
-/*Sidebar*/
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--Highlight);
+    outline-offset: 2px;
+}
 
-#Sidebar{
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.app-shell {
     display: flex;
-    width: min-content;
-    height: 95dvh;
-    border-radius: 22px;
+    min-height: 100vh;
+    gap: 16px;
+    padding: 12px;
+}
+
+.sidebar {
+    display: flex;
+    flex: 0 0 210px;
+    flex-direction: column;
+    height: calc(100vh - 24px);
     padding: 11px;
-    background-color: rgb(from var(--Text) r g b / 0.05);
+    border-radius: 22px;
+    background: var(--Panel);
 }
 
-#HeadlineMaker{
+.brand {
     display: flex;
-
+    align-items: center;
+    gap: 8px;
+    padding: 4px 5px 22px;
+    color: var(--Highlight);
+    font-size: 19px;
+    font-weight: bold;
 }
 
-#Logo{
-    width: 55px;
-    height: auto;
+.brand img {
+    width: 48px;
+    height: 48px;
 }
 
-#Headline{
-    margin-top: 50px;
+.navigation {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.Links {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    color: var(--Highlight);
+}
+
+.Links:hover,
+.Links.active {
+    background: rgb(248 247 252 / 7%);
+}
+
+.Links.active {
+    box-shadow: inset 3px 0 var(--Highlight);
+}
+
+.nav-icon {
+    width: 20px;
+    text-align: center;
+}
+
+.main-window {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: calc(100vh - 24px);
+    padding: 11px 8px;
+}
+
+:root[data-theme="light"] .Links.active,
+:root[data-theme="light"] .Links:hover,
+:root[data-theme="light"] .tree-folder summary:hover,
+:root[data-theme="light"] .tree-file:hover {
+    background: rgb(108 45 255 / 10%);
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.page-header h1 {
+    margin: 0 0 4px;
+    color: var(--Highlight);
+    font-size: 26px;
+}
+
+.eyebrow {
+    margin: 0 0 4px;
+    color: var(--Highlight);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.page-description,
+.status-text {
+    margin: 0;
+    color: rgb(248 247 252 / 65%);
+    font-size: 13px;
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.button-secondary {
+    background: transparent;
+}
+
+.button-danger {
+    border-color: rgb(248 247 252 / 25%);
+    background: transparent;
+}
+
+.document-location {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 12px;
+}
+
+.location-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.location-item strong {
+    overflow: hidden;
+    max-width: min(36vw, 430px);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.location-divider {
+    padding-top: 12px;
+    color: rgb(248 247 252 / 45%);
+}
+
+@media (max-width: 700px) {
+    .app-shell {
+        flex-direction: column;
+        gap: 10px;
+        padding: 8px;
+    }
+
+    .sidebar {
+        flex: auto;
+        width: 100%;
+        height: auto;
+        padding: 8px;
+    }
+
+    .brand {
+        padding-bottom: 8px;
+    }
+
+    .navigation {
+        flex-direction: row;
+        justify-content: space-around;
+    }
+
+    .Links {
+        gap: 5px;
+        padding: 8px;
+        font-size: 13px;
+    }
+
+    .main-window {
+        min-height: calc(100vh - 125px);
+        padding: 8px 3px;
+    }
+
+    .page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }

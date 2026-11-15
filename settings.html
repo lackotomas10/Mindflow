@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — Mindflow</title>
+    <link rel="shortcut icon" href="img/Network.svg" type="image/x-icon">
+    <link rel="stylesheet" href="GeneralStyle.css">
+    <link rel="stylesheet" href="Workspace.css">
+</head>
+<body data-page="settings">
+    <div class="app-shell">
+        <aside class="sidebar">
+            <a class="brand" href="Mindflow.html"><img src="img/Mindflow.svg" alt=""><span>Mindflow</span></a>
+            <nav class="navigation" aria-label="Main navigation">
+                <a class="Links" href="Mindflow.html"><span class="nav-icon">✎</span> Editor</a>
+                <a class="Links" href="storage.html"><span class="nav-icon">▤</span> Storage</a>
+                <a class="Links" href="charts.html"><span class="nav-icon">⌘</span> Charts</a>
+                <a class="Links active" href="settings.html" aria-current="page"><span class="nav-icon">⚙</span> Settings</a>
+            </nav>
+        </aside>
+
+        <main class="main-window workspace-layout">
+            <header class="page-header">
+                <div>
+                    <h1>Settings</h1>
+                    <p class="page-description">Tune Mindflow to fit your workflow.</p>
+                </div>
+            </header>
+
+            <div class="settings-grid">
+                <section class="settings-panel">
+                    <div class="settings-heading">
+                        <span class="settings-icon">⌘</span>
+                        <div>
+                            <h2>General</h2>
+                            <p>Workspace and note behavior</p>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <label for="RememberWorkspace">Remember workspace</label>
+                            <p>Keep the selected folder available between visits.</p>
+                        </div>
+                        <input id="RememberWorkspace" type="checkbox" checked>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <label for="ShowExtensions">Show file extensions</label>
+                            <p>Display “.md” in note names in Storage.</p>
+                        </div>
+                        <input id="ShowExtensions" type="checkbox" checked>
+                    </div>
+                </section>
+
+                <section class="settings-panel">
+                    <div class="settings-heading">
+                        <span class="settings-icon">◐</span>
+                        <div>
+                            <h2>Visual</h2>
+                            <p>Colors and reading comfort</p>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <label for="ThemeSelect">Appearance</label>
+                            <p>Choose the interface color theme.</p>
+                        </div>
+                        <select id="ThemeSelect">
+                            <option value="dark">Dark</option>
+                            <option value="light">Light</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <label for="AccentColor">Accent color</label>
+                            <p>Used for highlights and active items.</p>
+                        </div>
+                        <input id="AccentColor" type="color" value="#8b6cff">
+                    </div>
+                    <div class="setting-row setting-row-column">
+                        <div class="range-label">
+                            <div>
+                                <label for="FontScale">Interface text size</label>
+                                <p>Adjust the size of text across the app.</p>
+                            </div>
+                            <output id="FontScaleValue" for="FontScale">100%</output>
+                        </div>
+                        <input id="FontScale" type="range" min="90" max="120" step="5" value="100">
+                    </div>
+                </section>
+            </div>
+            <p id="SettingsStatus" class="status-text" role="status" aria-live="polite">Settings are saved automatically in this browser.</p>
+        </main>
+    </div>
+    <script src="app.js" defer></script>
+</body>
+</html>

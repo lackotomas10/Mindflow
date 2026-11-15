@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage — Mindflow</title>
+    <link rel="shortcut icon" href="img/Network.svg" type="image/x-icon">
+    <link rel="stylesheet" href="GeneralStyle.css">
+    <link rel="stylesheet" href="Workspace.css">
+</head>
+<body data-page="storage">
+    <div class="app-shell">
+        <aside class="sidebar">
+            <a class="brand" href="Mindflow.html"><img src="img/Mindflow.svg" alt=""><span>Mindflow</span></a>
+            <nav class="navigation" aria-label="Main navigation">
+                <a class="Links" href="Mindflow.html"><span class="nav-icon">✎</span> Editor</a>
+                <a class="Links active" href="storage.html" aria-current="page"><span class="nav-icon">▤</span> Storage</a>
+                <a class="Links" href="charts.html"><span class="nav-icon">⌘</span> Charts</a>
+                <a class="Links" href="settings.html"><span class="nav-icon">⚙</span> Settings</a>
+            </nav>
+        </aside>
+
+        <main class="main-window workspace-layout">
+            <header class="page-header">
+                <div>
+                    <h1>Storage</h1>
+                    <p class="page-description">Browse your folders and Markdown notes.</p>
+                </div>
+                <div class="button-row">
+                    <button id="NewFolder" class="button button-secondary" type="button">New folder</button>
+                    <button id="NewNote" type="button">New note</button>
+                </div>
+            </header>
+
+            <section class="storage-panel">
+                <div class="panel-heading">
+                    <div>
+                        <h2 id="WorkspaceName">No workspace selected</h2>
+                        <p id="StorageStatus" class="status-text" role="status" aria-live="polite">Choose a folder containing your notes to get started.</p>
+                    </div>
+                    <button id="ChooseFolder" class="button button-secondary" type="button">Open folder</button>
+                </div>
+                <div id="FolderTree" class="folder-tree" role="tree" aria-label="Workspace files"></div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js" defer></script>
+</body>
+</html>

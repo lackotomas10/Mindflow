@@ -1,45 +1,59 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mindflow</title>
-    <link rel="shortcut icon" href="img/Mindflow.svg" type="image/x-icon">
+    <link rel="shortcut icon" href="img/Network.svg" type="image/x-icon">
     <link rel="stylesheet" href="GeneralStyle.css">
     <link rel="stylesheet" href="Mindflow.css">
 </head>
-<body>
-    <main>
-        <div id="Sidebar"> <!-- Vyjíždění a zajíždění  -->
-            <nav>
-                <span id="HeadlineMaker">
-                    <img src="img/Mindflow.svg" id="Logo">
-                    <h1 id="Headline">Mindflow</h1>
-                </span>
-                
-                <a class="Links" href=""><h3>Storage</h3></a>
-                <a class="Links" href=""><h3>Charts</h3></a>
-                <a class="Links" href=""><h3>Settings</h3></a>
+<body data-page="editor">
+    <div class="app-shell">
+        <aside class="sidebar">
+            <a class="brand" href="Mindflow.html">
+                <img src="img/Mindflow.svg" alt="">
+                <span>Mindflow</span>
+            </a>
+            <nav class="navigation" aria-label="Main navigation">
+                <a class="Links active" href="Mindflow.html" aria-current="page"><span class="nav-icon">✎</span> Editor</a>
+                <a class="Links" href="storage.html"><span class="nav-icon">▤</span> Storage</a>
+                <a class="Links" href="charts.html"><span class="nav-icon">⌘</span> Charts</a>
+                <a class="Links" href="settings.html"><span class="nav-icon">⚙</span> Settings</a>
             </nav>
-        </div>
-        <div id="MainWindow">
-            <div class="WindowHeader">
-                <label for="BoxName">Box:</label>
-                <input id="BoxName" type="text" value="My Box">
-                <label for="DocumentName">Document:</label>
-                <input id="DocumentName" type="text" value="New document">
-            </div>
+        </aside>
 
-            <div class="NotesWindow">
-                <div class="NoteButtons">
-                    <button type="button">Save</button>
-                    <button type="button">Delete</button>
+        <main class="main-window">
+            <header class="page-header editor-header">
+                <div class="document-location">
+                    <div class="location-item">
+                        <span class="eyebrow">BOX</span>
+                        <strong id="BoxName">Choose a workspace</strong>
+                    </div>
+                    <span class="location-divider">/</span>
+                    <div class="location-item">
+                        <span class="eyebrow">DOCUMENT</span>
+                        <strong id="DocumentName">No document open</strong>
+                    </div>
                 </div>
-                <textarea class="NoteText" aria-label="Document text" placeholder="Start writing..."></textarea>
-            </div>
+                <button id="OpenNote" class="button button-secondary" type="button">Open Markdown file</button>
+            </header>
 
-        </div>
-    </main>
-    
+            <section class="editor-panel">
+                <div class="editor-toolbar">
+                    <p id="NoteStatus" class="status-text" role="status" aria-live="polite">Open a Markdown file or choose one in Storage.</p>
+                    <div class="button-row">
+                        <button id="SaveNote" type="button" disabled>Save</button>
+                        <button id="DeleteNote" class="button button-danger" type="button" disabled>Clear</button>
+                    </div>
+                </div>
+                <div class="editor-content">
+                    <h1 id="DocumentHeadline" class="document-headline">Welcome to Mindflow</h1>
+                    <textarea id="NoteText" class="note-text" aria-label="Document text" placeholder="Start writing in Markdown..."></textarea>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js" defer></script>
 </body>
 </html>
