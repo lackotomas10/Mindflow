@@ -602,16 +602,84 @@ async function markdownFiles(folder, path = '') {
   return files;
 }
 
-function graphPositions(keys) {
-  const radius = Math.min(250, 90 + Math.sqrt(keys.length) * 17);
+function graphPositions(keys, edges) {
   const positions = new Map();
-  keys.forEach((key, index) => {
-    const angle = keys.length === 1 ? 0 : (2 * Math.PI * index / keys.length) - Math.PI / 2;
-    positions.set(key, {
-      x: 500 + radius * Math.cos(angle),
-      y: 330 + radius * Math.sin(angle),
-    });
+  if (!keys.length) return positions;
+
+  const hashKey = (key) => {
+    let hash = 2166136261;
+    for (let index = 0; index < key.length; index += 1) {
+      hash = Math.imul(hash ^ key.charCodeAt(index), 16777619);
+    }
+    return hash >>> 0;
+  };
+
+  keys.forEach((key) => {
+    const seed = hashKey(key);
+    const randomX = ((Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+    const randomY = ((Math.imul(seed ^ 0x9e3779b9, 1664525) + 1013904223) >>> 0) / 4294967296;
+    positions.set(key, { x: 120 + randomX * 760, y: 80 + randomY * 520 });
   });
+
+  if (keys.length === 1) {
+    positions.set(keys[0], { x: 500, y: 330 });
+    return positions;
+  }
+
+  const indices = new Map(keys.map((key, index) => [key, index]));
+  const links = [...edges].map((edge) => edge.split('|').map((key) => indices.get(key)))
+    .filter(([from, to]) => from !== undefined && to !== undefined);
+  const idealDistance = Math.sqrt((900 * 580) / keys.length);
+  const iterations = Math.min(90, Math.max(24, Math.round(12000 / keys.length)));
+  const initialTemperature = Math.max(4, idealDistance * 0.5);
+
+  for (let iteration = 0; iteration < iterations; iteration += 1) {
+    const forces = keys.map(() => ({ x: 0, y: 0 }));
+    keys.forEach((key, firstIndex) => {
+      const first = positions.get(key);
+      for (let secondIndex = firstIndex + 1; secondIndex < keys.length; secondIndex += 1) {
+        const second = positions.get(keys[secondIndex]);
+        const dx = first.x - second.x;
+        const dy = first.y - second.y;
+        const distance = Math.max(1, Math.hypot(dx, dy));
+        const force = idealDistance * idealDistance / distance * 0.05;
+        const forceX = dx / distance * force;
+        const forceY = dy / distance * force;
+        forces[firstIndex].x += forceX;
+        forces[firstIndex].y += forceY;
+        forces[secondIndex].x -= forceX;
+        forces[secondIndex].y -= forceY;
+      }
+    });
+
+    links.forEach(([from, to]) => {
+      const first = positions.get(keys[from]);
+      const second = positions.get(keys[to]);
+      const dx = second.x - first.x;
+      const dy = second.y - first.y;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const force = distance * distance / idealDistance * 0.05;
+      const forceX = dx / distance * force;
+      const forceY = dy / distance * force;
+      forces[from].x += forceX;
+      forces[from].y += forceY;
+      forces[to].x -= forceX;
+      forces[to].y -= forceY;
+    });
+
+    const temperature = Math.max(0.35, initialTemperature * (1 - iteration / iterations));
+    keys.forEach((key, index) => {
+      const position = positions.get(key);
+      const force = forces[index];
+      force.x += (500 - position.x) * 0.3;
+      force.y += (330 - position.y) * 0.3;
+      const magnitude = Math.hypot(force.x, force.y);
+      const movement = Math.min(magnitude, temperature);
+      position.x = Math.max(36, Math.min(964, position.x + force.x / (magnitude || 1) * movement));
+      position.y = Math.max(44, Math.min(626, position.y + force.y / (magnitude || 1) * movement));
+    });
+  }
+
   return positions;
 }
 
@@ -628,12 +696,10 @@ function setGraphEdgePosition(edge, positions) {
 function drawGraph(files, svg, workspace, status) {
   svg.replaceChildren();
   const positions = new Map();
-  const layout = graphPositions(files.map((file) => noteKey(file.path)));
   files.forEach((file, index) => {
     const key = noteKey(file.path);
-    positions.set(noteKey(file.path), {
+    positions.set(key, {
       file,
-      ...layout.get(key),
       index,
     });
   });
@@ -648,6 +714,9 @@ function drawGraph(files, svg, workspace, status) {
       if (sourcePath !== destinationPath) edges.add([sourcePath, destinationPath].sort().join('|'));
     }
   });
+
+  const layout = graphPositions([...positions.keys()], edges);
+  positions.forEach((position, key) => Object.assign(position, layout.get(key)));
 
   edges.forEach((edge) => {
     const [from, to] = edge.split('|');
@@ -743,7 +812,7 @@ function chartsPage() {
   function moveToLayout(nodes, targets, positions, edges, run) {
     const starts = new Map(nodes.map((node) => [node.dataset.key, positions.get(node.dataset.key)]));
     const startTime = performance.now();
-    const duration = 650;
+    const duration = 1200;
 
     return new Promise((resolve, reject) => {
       function frame(time) {
@@ -754,7 +823,8 @@ function chartsPage() {
 
         try {
           const progress = Math.min(1, (time - startTime) / duration);
-          const eased = progress * progress * (3 - 2 * progress);
+          const eased = progress * progress * progress
+            * (progress * (progress * 6 - 15) + 10);
           nodes.forEach((node) => {
             const key = node.dataset.key;
             const start = starts.get(key);
@@ -811,13 +881,15 @@ function chartsPage() {
       if (run !== growthRun) return;
       const node = nodes[index];
       activeNodes.push(node);
-      const targets = graphPositions(activeNodes.map((activeNode) => activeNode.dataset.key));
       const key = node.dataset.key;
-      const initialPosition = activeNodes.length === 1
-        ? { x: 500, y: 330 }
-        : targets.get(key);
-      positions.set(key, initialPosition);
-      node.setAttribute('transform', `translate(${initialPosition.x} ${initialPosition.y})`);
+      const angle = Number(node.dataset.step) * 2.4;
+      const offset = index === 0 ? 0 : Math.min(12, 4 + Math.sqrt(index) * 2);
+      const start = {
+        x: 500 + Math.cos(angle) * offset,
+        y: 330 + Math.sin(angle) * offset,
+      };
+      positions.set(key, start);
+      node.setAttribute('transform', `translate(${start.x} ${start.y})`);
       node.classList.add('is-visible');
 
       edges
@@ -831,6 +903,18 @@ function chartsPage() {
           });
           setGraphEdgePosition(edge, positions);
         });
+
+      const activeKeys = new Set(activeNodes.map((activeNode) => activeNode.dataset.key));
+      const activeEdges = new Set(edges
+        .filter((edge) => activeKeys.has(edge.dataset.from) && activeKeys.has(edge.dataset.to))
+        .map((edge) => `${edge.dataset.from}|${edge.dataset.to}`));
+      const targets = graphPositions([...activeKeys], activeEdges);
+      const growth = (index + 1) / nodes.length;
+      const layoutScale = 0.18 + 0.82 * Math.pow(growth, 0.7);
+      targets.forEach((target) => {
+        target.x = 500 + (target.x - 500) * layoutScale;
+        target.y = 330 + (target.y - 330) * layoutScale;
+      });
 
       status.textContent = `Growing graph: ${index + 1} of ${nodes.length} notes`;
       await moveToLayout(activeNodes, targets, positions, edges, run);
