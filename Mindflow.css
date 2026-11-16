@@ -20,6 +20,15 @@
     border-bottom: 1px solid rgb(248 247 252 / 10%);
 }
 
+#NoteStatus {
+    flex: 1;
+}
+
+.document-actions .tree-rename {
+    border-color: rgb(248 247 252 / 18%);
+    background: transparent;
+}
+
 .editor-content {
     display: flex;
     flex: 1;
@@ -27,23 +36,49 @@
     padding: 28px clamp(16px, 5vw, 60px);
 }
 
-.document-headline {
-    margin: 0 0 16px;
-    color: var(--Highlight);
-    font-size: 28px;
+.note-editor {
+    position: relative;
+    flex: 1;
+    min-height: 280px;
+}
+
+.note-text,
+.note-highlight {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 8px 0;
+    font: 15px / 1.7 Consolas, monospace;
 }
 
 .note-text {
-    flex: 1;
-    width: 100%;
-    min-height: 280px;
-    padding: 8px 0;
+    z-index: 1;
+    min-height: 0;
     resize: none;
     border: 0;
     outline: none;
     background: transparent;
+    color: transparent;
+    caret-color: var(--Text);
+    -webkit-text-fill-color: transparent;
+}
+
+.note-highlight {
+    z-index: 2;
+    overflow: hidden;
+    margin: 0;
     color: var(--Text);
-    font: 15px / 1.7 Consolas, monospace;
+    pointer-events: none;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+.note-highlight a {
+    color: var(--Highlight);
+    pointer-events: auto;
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 .note-text:focus-visible {

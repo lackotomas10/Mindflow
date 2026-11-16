@@ -101,6 +101,18 @@ a {
     height: 48px;
 }
 
+.brand .logo-light {
+    display: none;
+}
+
+:root[data-theme="light"] .brand .logo-dark {
+    display: none;
+}
+
+:root[data-theme="light"] .brand .logo-light {
+    display: block;
+}
+
 .navigation {
     display: flex;
     flex-direction: column;
@@ -203,11 +215,31 @@ a {
     min-width: 0;
 }
 
-.location-item strong {
+.location-link {
+    display: block;
     overflow: hidden;
     max-width: min(36vw, 430px);
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--Text);
+    font-weight: 600;
+    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.location-link:hover:not(:disabled) {
+    color: var(--Highlight);
+    filter: none;
+    text-decoration: underline;
+}
+
+.document-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .location-divider {

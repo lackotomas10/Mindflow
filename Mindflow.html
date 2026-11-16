@@ -12,7 +12,8 @@
     <div class="app-shell">
         <aside class="sidebar">
             <a class="brand" href="Mindflow.html">
-                <img src="img/Mindflow.svg" alt="">
+                <img class="logo-dark" src="img/Mindflow (white).svg" alt="">
+                <img class="logo-light" src="img/Mindflow.svg" alt="">
                 <span>Mindflow</span>
             </a>
             <nav class="navigation" aria-label="Main navigation">
@@ -27,29 +28,33 @@
             <header class="page-header editor-header">
                 <div class="document-location">
                     <div class="location-item">
-                        <span class="eyebrow">BOX</span>
-                        <strong id="BoxName">Choose a workspace</strong>
+                        <span class="eyebrow">WORKSPACE</span>
+                        <a id="BoxName" class="location-link" href="storage.html" title="Browse workspace folders">Choose a workspace</a>
                     </div>
                     <span class="location-divider">/</span>
                     <div class="location-item">
-                        <span class="eyebrow">DOCUMENT</span>
-                        <strong id="DocumentName">No document open</strong>
+                        <span class="eyebrow">NOTE</span>
+                        <div class="document-actions">
+                            <button id="OpenNote" class="location-link" type="button" aria-label="Open a different note"><span id="DocumentName">Open a note</span></button>
+                            <button id="RenameNote" class="tree-rename" type="button" disabled>Rename</button>
+                        </div>
                     </div>
                 </div>
-                <button id="OpenNote" class="button button-secondary" type="button">Open Markdown file</button>
             </header>
 
             <section class="editor-panel">
                 <div class="editor-toolbar">
-                    <p id="NoteStatus" class="status-text" role="status" aria-live="polite">Open a Markdown file or choose one in Storage.</p>
+                    <p id="NoteStatus" class="status-text" role="status" aria-live="polite"></p>
                     <div class="button-row">
                         <button id="SaveNote" type="button" disabled>Save</button>
                         <button id="DeleteNote" class="button button-danger" type="button" disabled>Clear</button>
                     </div>
                 </div>
                 <div class="editor-content">
-                    <h1 id="DocumentHeadline" class="document-headline">Welcome to Mindflow</h1>
-                    <textarea id="NoteText" class="note-text" aria-label="Document text" placeholder="Start writing in Markdown..."></textarea>
+                    <div class="note-editor">
+                        <pre id="NoteHighlight" class="note-highlight" aria-hidden="true"></pre>
+                        <textarea id="NoteText" class="note-text" aria-label="Document text" placeholder="Write a note..."></textarea>
+                    </div>
                 </div>
             </section>
         </main>

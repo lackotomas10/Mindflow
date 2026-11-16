@@ -48,29 +48,46 @@ body[data-page="charts"] .main-window {
     margin: 2px 0;
 }
 
-.tree-folder summary {
+.tree-folder-row,
+.tree-file-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tree-folder-row summary {
+    flex: 1;
+    min-width: 0;
     padding: 5px 8px;
     border-radius: 6px;
     cursor: pointer;
     list-style: none;
 }
 
-.tree-folder summary::-webkit-details-marker {
+.tree-folder-row summary::-webkit-details-marker {
     display: none;
 }
 
-.tree-folder summary::before {
+.tree-folder-row summary::before {
     margin-right: 7px;
     color: var(--Highlight);
     content: "▸";
 }
 
-.tree-folder[open] > summary::before {
+.tree-folder[open] > .tree-folder-row summary::before {
     content: "▾";
 }
 
-.tree-folder summary:hover,.tree-file:hover {
+.tree-folder-row summary:hover,.tree-file:hover {
     background: rgb(248 247 252 / 6%);
+}
+
+.tree-rename {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    border-color: rgb(248 247 252 / 18%);
+    background: transparent;
+    font-size: 12px;
 }
 
 .tree-folder-icon {
@@ -86,7 +103,8 @@ body[data-page="charts"] .main-window {
 
 .tree-file {
     display: flex;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     align-items: center;
     gap: 8px;
     padding: 6px 9px;
@@ -151,6 +169,24 @@ body[data-page="charts"] .main-window {
     opacity: 0.55;
 }
 
+#GraphCanvas.graph-growing .graph-edge,
+#GraphCanvas.graph-growing .graph-node {
+    opacity: 0;
+    transition: opacity 650ms ease-in-out;
+}
+
+#GraphCanvas.graph-growing .graph-edge.is-visible {
+    opacity: 0.55;
+}
+
+#GraphCanvas.graph-growing .graph-node.is-visible {
+    opacity: 1;
+}
+
+#GraphCanvas.graph-growing .graph-node:not(.is-visible) {
+    pointer-events: none;
+}
+
 .graph-node {
     cursor: pointer;
 }
@@ -159,12 +195,18 @@ body[data-page="charts"] .main-window {
     fill: var(--Panel);
     stroke: var(--Highlight);
     stroke-width: 2;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform 650ms ease-in-out;
 }
 
 .graph-node text {
     fill: var(--Text);
     font: 13px sans-serif;
     text-anchor: middle;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform 650ms ease-in-out;
 }
 
 .graph-hint {

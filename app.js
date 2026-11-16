@@ -92,34 +92,205 @@ async function openNote(note, workspace) {
     handle: note.handle,
     path: note.path,
     workspace: workspace.name,
+    workspaceHandle: workspace,
   });
   window.location.href = 'Mindflow.html';
 }
 
-function showFolder(entries, parent, workspace, settings) {
+function noteKey(path) {
+  return path.replace(/\\/g, '/').replace(/\.md$/i, '').toLowerCase();
+}
+
+function resolveLinkPath(sourcePath, target, availablePaths) {
+  const cleanTarget = target.split('|')[0].split('#')[0].replace(/\\/g, '/');
+  const base = sourcePath.includes('/') ? sourcePath.slice(0, sourcePath.lastIndexOf('/') + 1) : '';
+  const targetPath = noteKey(`${base}${cleanTarget}`);
+  const shortTarget = noteKey(cleanTarget);
+  return availablePaths.has(targetPath)
+    ? targetPath
+    : availablePaths.has(shortTarget)
+      ? shortTarget
+      : [...availablePaths.keys()].find((path) => path.endsWith(`/${shortTarget}`));
+}
+
+function rewriteNoteLinks(content, sourcePath, availablePaths, renamedPaths, directoryMoved) {
+  let linkCount = 0;
+
+  function rewriteTarget(target) {
+    const newPath = renamedPaths.get(resolveLinkPath(sourcePath, target, availablePaths));
+    if (!newPath) return target;
+    const fragmentIndex = target.indexOf('#');
+    const path = fragmentIndex < 0 ? target : target.slice(0, fragmentIndex);
+    const fragment = fragmentIndex < 0 ? '' : target.slice(fragmentIndex);
+    const pathWithoutExtension = path.replace(/\.md$/i, '');
+    const extension = /\.md$/i.test(path) ? '.md' : '';
+    const renamedStem = newPath.replace(/\.md$/i, '');
+    const replacement = directoryMoved
+      ? `${renamedStem}${extension}`
+      : `${pathWithoutExtension.includes('/')
+        ? pathWithoutExtension.slice(0, pathWithoutExtension.lastIndexOf('/') + 1)
+        : ''}${renamedStem.slice(renamedStem.lastIndexOf('/') + 1)}${extension}`;
+    linkCount += 1;
+    return `${replacement}${fragment}`;
+  }
+
+  const rewritten = content
+    .replace(/\[\[([^\]]+)\]\]/g, (whole, inner) => {
+      const aliasIndex = inner.indexOf('|');
+      const target = aliasIndex < 0 ? inner : inner.slice(0, aliasIndex);
+      const alias = aliasIndex < 0 ? '' : inner.slice(aliasIndex);
+      return `[[${rewriteTarget(target)}${alias}]]`;
+    })
+    .replace(/\]\(([^)]+?\.md(?:#[^)]*)?)\)/gi, (whole, target) => `](${rewriteTarget(target)})`);
+
+  return { content: rewritten, linkCount };
+}
+
+async function renameWorkspaceEntryAndLinks(entry, workspace, newName, isFolder, currentContent) {
+  if (typeof entry.handle.move !== 'function') {
+    throw new Error('Renaming is not supported by this browser.');
+  }
+  if (!(await permission(workspace, 'readwrite', true))) throw new Error('Write access denied');
+  const files = await markdownFiles(workspace);
+  const availablePaths = new Map(files.map((file) => [noteKey(file.path), file]));
+  const parentPath = entry.path.includes('/')
+    ? entry.path.slice(0, entry.path.lastIndexOf('/') + 1)
+    : '';
+  const renamedEntryPath = `${parentPath}${newName}`;
+  const renamedPaths = new Map();
+  if (isFolder) {
+    const oldPrefix = `${entry.path}/`;
+    const newPrefix = `${renamedEntryPath}/`;
+    files.forEach((file) => {
+      if (file.path.startsWith(oldPrefix)) {
+        renamedPaths.set(noteKey(file.path), `${newPrefix}${file.path.slice(oldPrefix.length)}`);
+      }
+    });
+  } else {
+    renamedPaths.set(noteKey(entry.path), renamedEntryPath);
+  }
+
+  const updates = [];
+  let linkCount = 0;
+
+  files.forEach((file) => {
+    const result = rewriteNoteLinks(file.text, file.path, availablePaths, renamedPaths, isFolder);
+    if (result.content !== file.text) {
+      updates.push({ file, content: result.content });
+      linkCount += result.linkCount;
+    }
+  });
+
+  if (!(await permission(entry.handle, 'readwrite', true))) throw new Error('Write access denied');
+  for (const { file } of updates) {
+    if (file.path === entry.path) continue;
+    if (!(await permission(file.handle, 'readwrite', true))) throw new Error('Write access denied');
+  }
+  await entry.handle.move(newName);
+
+  let updatedFiles = 0;
+  let warning;
+  for (const { file, content } of updates) {
+    try {
+      const writable = await file.handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      updatedFiles += 1;
+    } catch (error) {
+      warning =
+        `Renamed the ${isFolder ? 'folder' : 'note'}, but updated links in only ${updatedFiles} of ${updates.length} files: ${error.message}`;
+      break;
+    }
+  }
+
+  const updatedCurrentContent = currentContent === undefined
+    ? undefined
+    : rewriteNoteLinks(currentContent, entry.path, availablePaths, renamedPaths, isFolder).content;
+  return { linkCount, updatedCurrentContent, renamedEntryPath, warning };
+}
+
+async function renameEntry(entry, workspace, status, reload, isFolder) {
+  const currentName = entry.handle.name;
+  let newName = prompt(`Rename ${isFolder ? 'folder' : 'note'}:`, currentName);
+  if (newName === null) return;
+  newName = newName.trim();
+  if (!newName || newName.includes('/') || newName.includes('\\')) {
+    status.textContent = 'Enter a valid name without path separators.';
+    return;
+  }
+  if (!isFolder && !/\.md$/i.test(newName)) newName += '.md';
+  if (newName === currentName) return;
+
+  try {
+    let updatedLinks = 0;
+    let warning;
+    const result = await renameWorkspaceEntryAndLinks(entry, workspace, newName, isFolder);
+    updatedLinks = result.linkCount;
+    warning = result.warning;
+    await reload(workspace);
+    status.textContent = warning || (updatedLinks
+      ? `Renamed ${newName} and updated ${updatedLinks} links.`
+      : `Renamed ${newName}.`);
+  } catch (error) {
+    console.error(error);
+    status.textContent = `Could not rename ${isFolder ? 'folder' : 'note'}: ${error.message}`;
+  }
+}
+
+function showFolder(entries, parent, workspace, settings, loadWorkspace) {
   entries.forEach((entry) => {
     if (entry.children) {
       const folder = document.createElement('details');
       folder.className = 'tree-folder';
+      const row = document.createElement('div');
+      row.className = 'tree-folder-row';
       const summary = document.createElement('summary');
       summary.textContent = entry.name;
+      const rename = document.createElement('button');
+      rename.className = 'tree-rename';
+      rename.type = 'button';
+      rename.textContent = 'Rename';
+      rename.setAttribute('aria-label', `Rename folder ${entry.name}`);
+      rename.addEventListener('click', () => renameEntry(
+        entry,
+        workspace,
+        document.getElementById('StorageStatus'),
+        loadWorkspace,
+        true,
+      ));
       const children = document.createElement('div');
       children.className = 'tree-children';
-      showFolder(entry.children, children, workspace, settings);
-      folder.append(summary, children);
+      showFolder(entry.children, children, workspace, settings, loadWorkspace);
+      row.append(summary, rename);
+      folder.append(row, children);
       parent.append(folder);
       return;
     }
 
-    const button = document.createElement('button');
-    button.className = 'tree-file';
-    button.type = 'button';
-    button.textContent = `▧ ${settings.showExtensions ? entry.name : entry.name.replace(/\.md$/i, '')}`;
-    button.addEventListener('click', () => openNote(entry, workspace).catch((error) => {
+    const row = document.createElement('div');
+    row.className = 'tree-file-row';
+    const open = document.createElement('button');
+    open.className = 'tree-file';
+    open.type = 'button';
+    open.textContent = `▧ ${settings.showExtensions ? entry.name : entry.name.replace(/\.md$/i, '')}`;
+    open.addEventListener('click', () => openNote(entry, workspace).catch((error) => {
       console.error(error);
       document.getElementById('StorageStatus').textContent = `Could not open note: ${error.message}`;
     }));
-    parent.append(button);
+    const rename = document.createElement('button');
+    rename.className = 'tree-rename';
+    rename.type = 'button';
+    rename.textContent = 'Rename';
+    rename.setAttribute('aria-label', `Rename note ${entry.name}`);
+    rename.addEventListener('click', () => renameEntry(
+      entry,
+      workspace,
+      document.getElementById('StorageStatus'),
+      loadWorkspace,
+      false,
+    ));
+    row.append(open, rename);
+    parent.append(row);
   });
 }
 
@@ -129,7 +300,7 @@ function storagePage() {
   const name = document.getElementById('WorkspaceName');
   let workspace;
 
-  async function load(handle) {
+  async function loadWorkspace(handle) {
     if (!(await permission(handle, 'read', false))) {
       status.textContent = 'Access expired. Choose the folder again.';
       return;
@@ -138,11 +309,11 @@ function storagePage() {
     name.textContent = handle.name;
     tree.replaceChildren();
     const entries = await folderEntries(handle);
-    showFolder(entries, tree, handle, settings);
+    showFolder(entries, tree, handle, settings, loadWorkspace);
     status.textContent = `${entries.length} items`;
   }
 
-  document.getElementById('ChooseFolder').addEventListener('click', () => chooseFolder(status, load));
+  document.getElementById('ChooseFolder').addEventListener('click', () => chooseFolder(status, loadWorkspace));
   document.getElementById('NewFolder').addEventListener('click', async () => {
     if (!workspace) {
       status.textContent = 'Open a workspace folder first.';
@@ -153,7 +324,7 @@ function storagePage() {
     try {
       if (!(await permission(workspace, 'readwrite', true))) throw new Error('Write access denied');
       await workspace.getDirectoryHandle(folderName, { create: true });
-      await load(workspace);
+      await loadWorkspace(workspace);
     } catch (error) {
       console.error(error);
       status.textContent = `Could not create folder: ${error.message}`;
@@ -182,7 +353,7 @@ function storagePage() {
   });
 
   state('get', 'workspace').then((handle) => {
-    if (settings.rememberWorkspace && handle) load(handle).catch((error) => {
+    if (settings.rememberWorkspace && handle) loadWorkspace(handle).catch((error) => {
       console.error(error);
       status.textContent = `Could not load folder: ${error.message}`;
     });
@@ -197,20 +368,57 @@ function editorPage() {
   const status = document.getElementById('NoteStatus');
   const save = document.getElementById('SaveNote');
   const clear = document.getElementById('DeleteNote');
+  const rename = document.getElementById('RenameNote');
+  const highlights = document.getElementById('NoteHighlight');
   let note;
 
-  function show(handle, path, workspace, content) {
-    note = { handle, path, workspace };
+  function renderHighlights() {
+    highlights.replaceChildren();
+    const pattern = /\[\[([^\]]+)\]\]/g;
+    let cursor = 0;
+    let match;
+    while ((match = pattern.exec(text.value))) {
+      highlights.append(document.createTextNode(text.value.slice(cursor, match.index)));
+      const link = document.createElement('a');
+      link.href = '#';
+      link.dataset.target = match[1];
+      link.tabIndex = -1;
+      link.textContent = match[0];
+      highlights.append(link);
+      cursor = pattern.lastIndex;
+    }
+    highlights.append(document.createTextNode(text.value.slice(cursor)));
+  }
+
+  function show(handle, path, workspace, content, workspaceHandle) {
+    note = { handle, path, workspace, workspaceHandle };
     text.value = content;
     document.getElementById('BoxName').textContent = path.includes('/')
       ? `${workspace}/${path.slice(0, path.lastIndexOf('/'))}`
       : workspace;
     document.getElementById('DocumentName').textContent = handle.name;
-    document.getElementById('DocumentHeadline').textContent = handle.name;
     document.title = `${handle.name} — Mindflow`;
     save.disabled = false;
     clear.disabled = false;
-    status.textContent = path;
+    rename.disabled = false;
+    status.textContent = '';
+    renderHighlights();
+  }
+
+  async function openLinkedNote(target) {
+    if (!note || !note.workspaceHandle) {
+      status.textContent = 'Open a note from a workspace to follow its links.';
+      return;
+    }
+    const files = await markdownFiles(note.workspaceHandle);
+    const available = new Map(files.map((file) => [noteKey(file.path), file]));
+    const path = resolveLinkPath(note.path, target, available);
+    const destination = available.get(path);
+    if (!destination) {
+      status.textContent = `Could not find linked note "${target.split('|')[0]}".`;
+      return;
+    }
+    await openNote(destination, note.workspaceHandle);
   }
 
   document.getElementById('OpenNote').addEventListener('click', async () => {
@@ -224,13 +432,86 @@ function editorPage() {
       });
       const file = await handle.getFile();
       await state('put', 'note', { handle, path: file.name, workspace: 'Local file' });
-      show(handle, file.name, 'Local file', await file.text());
+      show(handle, file.name, 'Local file', await file.text(), null);
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error(error);
         status.textContent = `Could not open note: ${error.message}`;
       }
     }
+  });
+
+  rename.addEventListener('click', async () => {
+    let newName = prompt('Rename note:', note.handle.name);
+    if (newName === null) return;
+    newName = newName.trim();
+    if (!newName || newName.includes('/') || newName.includes('\\')) {
+      status.textContent = 'Enter a valid note name without path separators.';
+      return;
+    }
+    if (!/\.md$/i.test(newName)) newName += '.md';
+    if (newName === note.handle.name) return;
+    try {
+      let updatedLinks = 0;
+      let updatedCurrentContent;
+      let warning;
+      let renamedPath;
+      if (note.workspaceHandle) {
+        const result = await renameWorkspaceEntryAndLinks(
+          { handle: note.handle, path: note.path },
+          note.workspaceHandle,
+          newName,
+          false,
+          text.value,
+        );
+        updatedLinks = result.linkCount;
+        updatedCurrentContent = result.updatedCurrentContent;
+        renamedPath = result.renamedEntryPath;
+        warning = result.warning;
+      } else {
+        if (!(await permission(note.handle, 'readwrite', true))) throw new Error('Write access denied');
+        if (typeof note.handle.move !== 'function') {
+          throw new Error('Renaming is not supported by this browser.');
+        }
+        await note.handle.move(newName);
+      }
+      if (renamedPath) {
+        note.path = renamedPath;
+      } else {
+        const parentPath = note.path.includes('/')
+          ? note.path.slice(0, note.path.lastIndexOf('/') + 1)
+          : '';
+        note.path = `${parentPath}${newName}`;
+      }
+      await state('put', 'note', note);
+      document.getElementById('DocumentName').textContent = newName;
+      document.title = `${newName} — Mindflow`;
+      if (updatedCurrentContent !== undefined) {
+        text.value = updatedCurrentContent;
+        renderHighlights();
+      }
+      status.textContent = warning || (note.workspaceHandle
+        ? `Renamed ${newName} and updated ${updatedLinks} links.`
+        : `Renamed ${newName}; open it from a workspace to update its links.`);
+    } catch (error) {
+      console.error(error);
+      status.textContent = `Could not rename note: ${error.message}`;
+    }
+  });
+
+  text.addEventListener('input', renderHighlights);
+  text.addEventListener('scroll', () => {
+    highlights.scrollTop = text.scrollTop;
+    highlights.scrollLeft = text.scrollLeft;
+  });
+  highlights.addEventListener('click', (event) => {
+    const link = event.target.closest('a[data-target]');
+    if (!link) return;
+    event.preventDefault();
+    openLinkedNote(link.dataset.target).catch((error) => {
+      console.error(error);
+      status.textContent = `Could not open linked note: ${error.message}`;
+    });
   });
 
   save.addEventListener('click', async () => {
@@ -253,6 +534,7 @@ function editorPage() {
       await writable.write('');
       await writable.close();
       text.value = '';
+      renderHighlights();
       status.textContent = `Cleared ${note.handle.name}`;
     } catch (error) {
       console.error(error);
@@ -267,7 +549,7 @@ function editorPage() {
       return;
     }
     const file = await saved.handle.getFile();
-    show(saved.handle, saved.path, saved.workspace, await file.text());
+    show(saved.handle, saved.path, saved.workspace, await file.text(), saved.workspaceHandle);
   }).catch((error) => {
     console.error(error);
     status.textContent = `Could not restore note: ${error.message}`;
@@ -287,19 +569,39 @@ async function markdownFiles(folder, path = '') {
   return files;
 }
 
-function drawGraph(files, svg, workspace) {
+function graphPositions(keys) {
+  const radius = Math.min(250, 90 + Math.sqrt(keys.length) * 17);
+  const positions = new Map();
+  keys.forEach((key, index) => {
+    const angle = keys.length === 1 ? 0 : (2 * Math.PI * index / keys.length) - Math.PI / 2;
+    positions.set(key, {
+      x: 500 + radius * Math.cos(angle),
+      y: 330 + radius * Math.sin(angle),
+    });
+  });
+  return positions;
+}
+
+function setGraphEdgePosition(edge, positions) {
+  const first = positions.get(edge.dataset.from);
+  const second = positions.get(edge.dataset.to);
+  if (!first || !second) return;
+  edge.setAttribute('x1', first.x);
+  edge.setAttribute('y1', first.y);
+  edge.setAttribute('x2', second.x);
+  edge.setAttribute('y2', second.y);
+}
+
+function drawGraph(files, svg, workspace, status) {
   svg.replaceChildren();
   const positions = new Map();
-  const noteKey = (path) => path.replace(/\\/g, '/').replace(/\.md$/i, '').toLowerCase();
-  const centerX = 500;
-  const centerY = 330;
-  const radius = Math.min(250, 90 + Math.sqrt(files.length) * 17);
+  const layout = graphPositions(files.map((file) => noteKey(file.path)));
   files.forEach((file, index) => {
-    const angle = files.length === 1 ? 0 : (2 * Math.PI * index / files.length) - Math.PI / 2;
+    const key = noteKey(file.path);
     positions.set(noteKey(file.path), {
       file,
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle),
+      ...layout.get(key),
+      index,
     });
   });
 
@@ -307,15 +609,7 @@ function drawGraph(files, svg, workspace) {
   files.forEach((file) => {
     const links = file.text.matchAll(/\[\[([^\]]+)\]\]|\]\(([^)]+\.md)(?:#[^)]*)?\)/gi);
     for (const match of links) {
-      const target = (match[1] || match[2]).split('|')[0].split('#')[0].replace(/\\/g, '/');
-      const base = file.path.includes('/') ? file.path.slice(0, file.path.lastIndexOf('/') + 1) : '';
-      const targetPath = noteKey(`${base}${target}`);
-      const shortTarget = noteKey(target);
-      const destinationPath = positions.has(targetPath)
-        ? targetPath
-        : positions.has(shortTarget)
-          ? shortTarget
-          : [...positions.keys()].find((path) => path.endsWith(`/${shortTarget}`));
+      const destinationPath = resolveLinkPath(file.path, match[1] || match[2], positions);
       if (!destinationPath) continue;
       const sourcePath = noteKey(file.path);
       if (sourcePath !== destinationPath) edges.add([sourcePath, destinationPath].sort().join('|'));
@@ -332,22 +626,40 @@ function drawGraph(files, svg, workspace) {
     line.setAttribute('x2', second.x);
     line.setAttribute('y2', second.y);
     line.setAttribute('class', 'graph-edge');
+    line.setAttribute('data-step', Math.max(first.index, second.index));
+    line.setAttribute('data-from', from);
+    line.setAttribute('data-to', to);
     svg.append(line);
   });
 
-  positions.forEach(({ file, x, y }) => {
+  const degrees = new Map([...positions.keys()].map((path) => [path, 0]));
+  edges.forEach((edge) => {
+    const [from, to] = edge.split('|');
+    degrees.set(from, degrees.get(from) + 1);
+    degrees.set(to, degrees.get(to) + 1);
+  });
+
+  positions.forEach(({ file, x, y, index }) => {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     group.setAttribute('class', 'graph-node');
+    group.setAttribute('data-step', index);
+    group.setAttribute('data-key', noteKey(file.path));
+    group.setAttribute('data-final-x', x);
+    group.setAttribute('data-final-y', y);
     group.setAttribute('transform', `translate(${x} ${y})`);
+    const radius = 4 + Math.sqrt(degrees.get(noteKey(file.path))) * 15;
+    group.setAttribute('data-final-radius', radius);
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('r', '8');
+    circle.setAttribute('r', radius);
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('y', '26');
+    label.setAttribute('y', radius + 18);
     label.textContent = file.name.replace(/\.md$/i, '');
     group.append(circle, label);
-    group.addEventListener('click', async () => {
-      await state('put', 'note', { handle: file.handle, path: file.path, workspace: workspace.name });
-      window.location.href = 'Mindflow.html';
+    group.addEventListener('click', () => {
+      openNote(file, workspace).catch((error) => {
+        console.error(error);
+        status.textContent = `Could not open note: ${error.message}`;
+      });
     });
     svg.append(group);
   });
@@ -357,17 +669,170 @@ function drawGraph(files, svg, workspace) {
 function chartsPage() {
   const status = document.getElementById('GraphStatus');
   const svg = document.getElementById('GraphCanvas');
+  const animateButton = document.getElementById('AnimateGraph');
+  let growthRun = 0;
+  let graphSummary = '';
+
+  function setNodeSize(node, radius) {
+    const finalRadius = Number(node.dataset.finalRadius);
+    node.querySelector('circle').style.transform = `scale(${radius / finalRadius})`;
+    node.querySelector('text').style.transform = `translateY(${radius - finalRadius}px)`;
+  }
+
+  function finalPositions() {
+    const positions = new Map();
+    svg.querySelectorAll('.graph-node').forEach((node) => {
+      positions.set(node.dataset.key, {
+        x: Number(node.dataset.finalX),
+        y: Number(node.dataset.finalY),
+      });
+    });
+    return positions;
+  }
+
+  function resetGrowth() {
+    growthRun += 1;
+    svg.classList.remove('graph-growing');
+    const positions = finalPositions();
+    svg.querySelectorAll('.graph-node').forEach((node) => {
+      node.classList.remove('is-visible');
+      setNodeSize(node, Number(node.dataset.finalRadius));
+      const position = positions.get(node.dataset.key);
+      node.setAttribute('transform', `translate(${position.x} ${position.y})`);
+    });
+    svg.querySelectorAll('.graph-edge').forEach((edge) => {
+      edge.classList.remove('is-visible');
+      setGraphEdgePosition(edge, positions);
+    });
+    animateButton.disabled = svg.querySelectorAll('.graph-node').length === 0;
+  }
+
+  function moveToLayout(nodes, targets, positions, edges, run) {
+    const starts = new Map(nodes.map((node) => [node.dataset.key, positions.get(node.dataset.key)]));
+    const startTime = performance.now();
+    const duration = 650;
+
+    return new Promise((resolve, reject) => {
+      function frame(time) {
+        if (run !== growthRun) {
+          resolve();
+          return;
+        }
+
+        try {
+          const progress = Math.min(1, (time - startTime) / duration);
+          const eased = progress * progress * (3 - 2 * progress);
+          nodes.forEach((node) => {
+            const key = node.dataset.key;
+            const start = starts.get(key);
+            const target = targets.get(key);
+            const position = {
+              x: start.x + (target.x - start.x) * eased,
+              y: start.y + (target.y - start.y) * eased,
+            };
+            positions.set(key, position);
+            node.setAttribute('transform', `translate(${position.x} ${position.y})`);
+          });
+          edges.forEach((edge) => {
+            if (edge.classList.contains('is-visible')) setGraphEdgePosition(edge, positions);
+          });
+          if (progress === 1) {
+            resolve();
+          } else {
+            window.requestAnimationFrame(frame);
+          }
+        } catch (error) {
+          reject(error);
+        }
+      }
+
+      window.requestAnimationFrame(frame);
+    });
+  }
+
+  async function animateGrowth() {
+    const nodes = [...svg.querySelectorAll('.graph-node')];
+    if (!nodes.length) return;
+
+    const run = ++growthRun;
+    const edges = [...svg.querySelectorAll('.graph-edge')];
+    const nodesByKey = new Map(nodes.map((node) => [node.dataset.key, node]));
+    svg.querySelectorAll('.is-visible').forEach((element) => element.classList.remove('is-visible'));
+    svg.classList.add('graph-growing');
+    const degrees = new Map(nodes.map((node) => [node.dataset.key, 0]));
+    const animatedElements = nodes.flatMap((node) => [
+      node.querySelector('circle'),
+      node.querySelector('text'),
+    ]);
+    animatedElements.forEach((element) => {
+      element.style.transition = 'none';
+    });
+    nodes.forEach((node) => setNodeSize(node, 4));
+    svg.getBoundingClientRect();
+    animatedElements.forEach((element) => element.style.removeProperty('transition'));
+    animateButton.disabled = true;
+
+    const activeNodes = [];
+    const positions = new Map();
+    for (let index = 0; index < nodes.length; index += 1) {
+      if (run !== growthRun) return;
+      const node = nodes[index];
+      activeNodes.push(node);
+      const targets = graphPositions(activeNodes.map((activeNode) => activeNode.dataset.key));
+      const key = node.dataset.key;
+      const initialPosition = activeNodes.length === 1
+        ? { x: 500, y: 330 }
+        : targets.get(key);
+      positions.set(key, initialPosition);
+      node.setAttribute('transform', `translate(${initialPosition.x} ${initialPosition.y})`);
+      node.classList.add('is-visible');
+
+      edges
+        .filter((edge) => Number(edge.dataset.step) === index)
+        .forEach((edge) => {
+          edge.classList.add('is-visible');
+          [edge.dataset.from, edge.dataset.to].forEach((nodeKey) => {
+            const degree = degrees.get(nodeKey) + 1;
+            degrees.set(nodeKey, degree);
+            setNodeSize(nodesByKey.get(nodeKey), 4 + Math.sqrt(degree) * 15);
+          });
+          setGraphEdgePosition(edge, positions);
+        });
+
+      status.textContent = `Growing graph: ${index + 1} of ${nodes.length} notes`;
+      await moveToLayout(activeNodes, targets, positions, edges, run);
+      if (run !== growthRun) return;
+      if (index < nodes.length - 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 150));
+      }
+    }
+
+    svg.classList.remove('graph-growing');
+    animateButton.disabled = false;
+    status.textContent = graphSummary;
+  }
 
   async function load(handle) {
+    resetGrowth();
+    animateButton.disabled = true;
     if (!(await permission(handle, 'read', false))) {
+      animateButton.disabled = svg.querySelectorAll('.graph-node').length === 0;
       status.textContent = 'Access expired. Choose the workspace folder again.';
       return;
     }
     const files = await markdownFiles(handle);
-    const edges = drawGraph(files, svg, handle);
-    status.textContent = `${files.length} notes · ${edges} connections`;
+    files.sort((first, second) => first.path.localeCompare(second.path));
+    const edges = drawGraph(files, svg, handle, status);
+    graphSummary = `${files.length} notes · ${edges} ${edges === 1 ? 'connection' : 'connections'}`;
+    status.textContent = graphSummary;
+    animateButton.disabled = files.length === 0;
   }
 
+  animateButton.addEventListener('click', () => animateGrowth().catch((error) => {
+    console.error(error);
+    resetGrowth();
+    status.textContent = `Could not animate graph: ${error.message}`;
+  }));
   document.getElementById('ChooseGraphFolder').addEventListener('click', () => chooseFolder(status, load));
   document.getElementById('RefreshGraph').addEventListener('click', async () => {
     try {
