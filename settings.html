@@ -13,18 +13,17 @@
         <aside class="sidebar">
             <a class="brand" href="Mindflow.html"><img class="logo-dark" src="img/Mindflow (white).svg" alt=""><img class="logo-light" src="img/Mindflow.svg" alt=""><span>Mindflow</span></a>
             <nav class="navigation" aria-label="Main navigation">
-                <a class="Links" href="Mindflow.html"><span class="nav-icon">✎</span> Editor</a>
-                <a class="Links" href="storage.html"><span class="nav-icon">▤</span> Storage</a>
-                <a class="Links" href="charts.html"><span class="nav-icon">⌘</span> Charts</a>
-                <a class="Links active" href="settings.html" aria-current="page"><span class="nav-icon">⚙</span> Settings</a>
+                <a class="Links" href="Mindflow.html" title="Editor"><span class="nav-icon">✎</span><span class="nav-label">Editor</span></a>
+                <a class="Links" href="storage.html" title="Storage"><span class="nav-icon">▤</span><span class="nav-label">Storage</span></a>
+                <a class="Links" href="charts.html" title="Charts"><span class="nav-icon">⌘</span><span class="nav-label">Charts</span></a>
+                <a class="Links active" href="settings.html" aria-current="page" title="Settings"><span class="nav-icon">⚙</span><span class="nav-label">Settings</span></a>
             </nav>
         </aside>
 
-        <main class="main-window workspace-layout">
+        <main class="main-window">
             <header class="page-header">
                 <div>
                     <h1>Settings</h1>
-                    <p class="page-description">Tune Mindflow to fit your workflow.</p>
                 </div>
             </header>
 
@@ -34,7 +33,6 @@
                         <span class="settings-icon">⌘</span>
                         <div>
                             <h2>General</h2>
-                            <p>Workspace and note behavior</p>
                         </div>
                     </div>
                     <div class="setting-row">
@@ -58,7 +56,6 @@
                         <span class="settings-icon">◐</span>
                         <div>
                             <h2>Visual</h2>
-                            <p>Colors and reading comfort</p>
                         </div>
                     </div>
                     <div class="setting-row">
@@ -90,7 +87,7 @@
                     </div>
                 </section>
             </div>
-            <p id="SettingsStatus" class="status-text" role="status" aria-live="polite">Settings are saved automatically in this browser.</p>
+            <p id="SettingsStatus" class="status-text" role="status" aria-live="polite"></p>
         </main>
     </div>
     <script src="app.js" defer></script>

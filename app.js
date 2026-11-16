@@ -44,6 +44,17 @@ function saveSettings() {
   applySettings();
 }
 
+function navigateToPage(url) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    window.location.href = url;
+    return;
+  }
+  document.body.classList.add('page-leaving');
+  window.setTimeout(() => {
+    window.location.href = url;
+  }, 140);
+}
+
 async function permission(handle, mode, ask) {
   let result = await handle.queryPermission({ mode });
   if (result !== 'granted' && ask) {
@@ -94,7 +105,7 @@ async function openNote(note, workspace) {
     workspace: workspace.name,
     workspaceHandle: workspace,
   });
-  window.location.href = 'Mindflow.html';
+  navigateToPage('Mindflow.html');
 }
 
 function noteKey(path) {
@@ -247,7 +258,7 @@ function showFolder(entries, parent, workspace, settings, loadWorkspace) {
       const summary = document.createElement('summary');
       summary.textContent = entry.name;
       const rename = document.createElement('button');
-      rename.className = 'tree-rename';
+      rename.className = 'tree-rename button-secondary';
       rename.type = 'button';
       rename.textContent = 'Rename';
       rename.setAttribute('aria-label', `Rename folder ${entry.name}`);
@@ -278,7 +289,7 @@ function showFolder(entries, parent, workspace, settings, loadWorkspace) {
       document.getElementById('StorageStatus').textContent = `Could not open note: ${error.message}`;
     }));
     const rename = document.createElement('button');
-    rename.className = 'tree-rename';
+    rename.className = 'tree-rename button-secondary';
     rename.type = 'button';
     rename.textContent = 'Rename';
     rename.setAttribute('aria-label', `Rename note ${entry.name}`);
@@ -899,6 +910,20 @@ function settingsPage() {
 
 document.addEventListener('DOMContentLoaded', () => {
   applySettings();
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+    if (!link || link.target || link.hasAttribute('download')) return;
+    const destination = new URL(link.href, window.location.href);
+    if (
+      destination.protocol !== window.location.protocol
+      || destination.host !== window.location.host
+      || !/\.html$/i.test(destination.pathname)
+      || destination.pathname === window.location.pathname
+    ) return;
+    event.preventDefault();
+    navigateToPage(destination.href);
+  });
   const page = document.body.dataset.page;
   if (page === 'editor') editorPage();
   if (page === 'storage') storagePage();

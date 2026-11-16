@@ -78,27 +78,47 @@ a {
 
 .sidebar {
     display: flex;
-    flex: 0 0 210px;
+    flex: 0 0 64px;
     flex-direction: column;
     height: calc(100vh - 24px);
-    padding: 11px;
+    overflow: hidden;
+    padding: 8px;
     border-radius: 22px;
     background: var(--Panel);
+    transition: flex-basis 260ms ease, padding 260ms ease;
+}
+
+.sidebar:hover,
+.sidebar:focus-within {
+    flex-basis: 210px;
 }
 
 .brand {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 5px 22px;
+    justify-content: center;
+    gap: 0;
+    overflow: hidden;
+    padding: 4px 0 22px;
     color: var(--Highlight);
     font-size: 19px;
     font-weight: bold;
+    transition: gap 260ms ease;
+}
+
+.brand > span,
+.nav-label {
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    white-space: nowrap;
+    transition: max-width 260ms ease, opacity 180ms ease;
 }
 
 .brand img {
     width: 48px;
     height: 48px;
+    flex: 0 0 48px;
 }
 
 .brand .logo-light {
@@ -122,10 +142,37 @@ a {
 .Links {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    gap: 0;
+    overflow: hidden;
     padding: 10px;
     border-radius: 8px;
     color: var(--Highlight);
+    transition: background-color 160ms ease, gap 260ms ease;
+}
+
+.nav-label {
+    flex: 0 1 auto;
+}
+
+.sidebar:hover .brand,
+.sidebar:focus-within .brand {
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.sidebar:hover .brand > span,
+.sidebar:focus-within .brand > span,
+.sidebar:hover .nav-label,
+.sidebar:focus-within .nav-label {
+    max-width: 140px;
+    opacity: 1;
+}
+
+.sidebar:hover .Links,
+.sidebar:focus-within .Links {
+    justify-content: flex-start;
+    gap: 10px;
 }
 
 .Links:hover,
@@ -194,17 +241,14 @@ a {
 }
 
 .button-secondary {
+    border-color: var(--Highlight);
     background: transparent;
-}
-
-.button-danger {
-    border-color: rgb(248 247 252 / 25%);
-    background: transparent;
+    color: var(--Text);
 }
 
 .document-location {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     min-width: 0;
     gap: 12px;
 }
@@ -230,7 +274,28 @@ a {
     white-space: nowrap;
 }
 
+.document-name {
+    display: block;
+    overflow: hidden;
+    max-width: min(36vw, 430px);
+    min-width: 0;
+    height: 22.5px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    line-height: 20.5px;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .location-link:hover:not(:disabled) {
+    color: var(--Highlight);
+    filter: none;
+    text-decoration: underline;
+}
+
+.document-name:hover:not(:disabled) {
     color: var(--Highlight);
     filter: none;
     text-decoration: underline;
@@ -238,13 +303,49 @@ a {
 
 .document-actions {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
 }
 
 .location-divider {
     padding-top: 12px;
     color: rgb(248 247 252 / 45%);
+}
+
+body {
+    animation: page-enter 180ms ease both;
+}
+
+body.page-leaving {
+    animation: page-leave 140ms ease both;
+}
+
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes page-leave {
+    to {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
 @media (max-width: 700px) {
@@ -255,14 +356,29 @@ a {
     }
 
     .sidebar {
-        flex: auto;
+        flex: 0 0 auto;
         width: 100%;
         height: auto;
+        overflow: visible;
         padding: 8px;
+        transition: none;
+    }
+
+    .sidebar:hover,
+    .sidebar:focus-within {
+        flex-basis: auto;
     }
 
     .brand {
+        justify-content: flex-start;
+        gap: 8px;
         padding-bottom: 8px;
+    }
+
+    .brand > span,
+    .nav-label {
+        max-width: 140px;
+        opacity: 1;
     }
 
     .navigation {
@@ -271,13 +387,15 @@ a {
     }
 
     .Links {
+        justify-content: flex-start;
         gap: 5px;
         padding: 8px;
         font-size: 13px;
     }
 
     .main-window {
-        min-height: calc(100vh - 125px);
+        flex: 1;
+        min-height: 0;
         padding: 8px 3px;
     }
 

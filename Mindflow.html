@@ -17,10 +17,10 @@
                 <span>Mindflow</span>
             </a>
             <nav class="navigation" aria-label="Main navigation">
-                <a class="Links active" href="Mindflow.html" aria-current="page"><span class="nav-icon">✎</span> Editor</a>
-                <a class="Links" href="storage.html"><span class="nav-icon">▤</span> Storage</a>
-                <a class="Links" href="charts.html"><span class="nav-icon">⌘</span> Charts</a>
-                <a class="Links" href="settings.html"><span class="nav-icon">⚙</span> Settings</a>
+                <a class="Links active" href="Mindflow.html" aria-current="page" title="Editor"><span class="nav-icon">✎</span><span class="nav-label">Editor</span></a>
+                <a class="Links" href="storage.html" title="Storage"><span class="nav-icon">▤</span><span class="nav-label">Storage</span></a>
+                <a class="Links" href="charts.html" title="Charts"><span class="nav-icon">⌘</span><span class="nav-label">Charts</span></a>
+                <a class="Links" href="settings.html" title="Settings"><span class="nav-icon">⚙</span><span class="nav-label">Settings</span></a>
             </nav>
         </aside>
 
@@ -35,8 +35,8 @@
                     <div class="location-item">
                         <span class="eyebrow">NOTE</span>
                         <div class="document-actions">
-                            <button id="OpenNote" class="location-link" type="button" aria-label="Open a different note"><span id="DocumentName">Open a note</span></button>
-                            <button id="RenameNote" class="tree-rename" type="button" disabled>Rename</button>
+                            <button id="OpenNote" class="document-name button-secondary" type="button" aria-label="Open a different note"><span id="DocumentName">Open a note</span></button>
+                            <button id="RenameNote" class="tree-rename button-secondary" type="button" disabled>Rename</button>
                         </div>
                     </div>
                 </div>
@@ -47,7 +47,7 @@
                     <p id="NoteStatus" class="status-text" role="status" aria-live="polite"></p>
                     <div class="button-row">
                         <button id="SaveNote" type="button" disabled>Save</button>
-                        <button id="DeleteNote" class="button button-danger" type="button" disabled>Clear</button>
+                        <button id="DeleteNote" class="button button-secondary" type="button" disabled>Clear</button>
                     </div>
                 </div>
                 <div class="editor-content">
