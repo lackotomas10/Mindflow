@@ -426,7 +426,29 @@ function editorPage() {
     const path = resolveLinkPath(note.path, target, available);
     const destination = available.get(path);
     if (!destination) {
-      status.textContent = `Could not find linked note "${target.split('|')[0]}".`;
+      const cleanTarget = target.split('|')[0].split('#')[0].trim().replace(/\\/g, '/');
+      const targetPath = /\.md$/i.test(cleanTarget) ? cleanTarget : `${cleanTarget}.md`;
+      const targetParts = targetPath.split('/');
+      if (!cleanTarget || targetParts.some((part) => !part || part === '.' || part === '..')) {
+        status.textContent = `Could not create linked note "${target.split('|')[0]}": enter a valid relative note path.`;
+        return;
+      }
+      if (!(await permission(note.workspaceHandle, 'readwrite', true))) {
+        throw new Error('Write access denied');
+      }
+
+      const parentPath = note.path.includes('/')
+        ? note.path.slice(0, note.path.lastIndexOf('/'))
+        : '';
+      let directory = note.workspaceHandle;
+      for (const part of parentPath.split('/').filter(Boolean)) {
+        directory = await directory.getDirectoryHandle(part);
+      }
+      for (const part of targetParts.slice(0, -1)) {
+        directory = await directory.getDirectoryHandle(part, { create: true });
+      }
+      const handle = await directory.getFileHandle(targetParts[targetParts.length - 1], { create: true });
+      await openNote({ handle, path: `${parentPath ? `${parentPath}/` : ''}${targetPath}` }, note.workspaceHandle);
       return;
     }
     await openNote(destination, note.workspaceHandle);
